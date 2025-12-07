@@ -1,0 +1,61 @@
+# มุมทิศการวางตัวของวิหารในพระอารามหลวง 136 วัด (มีวิหารเพียง 96 วัด)
+# ใช้ Python ควบคู่กับ built-in library ในก่าร
+    # 1. จัดการข้อมูลที่วัดได้จาก Google Earth จำนวนรวมเกือบ 500 ข้อมูล
+    # 2. สร้างกราฟความสัมพันธ์ และนำเสนอความสัมพันธ์
+# script ทั้งหมดนี้เขียนโดยวรเมธ กาศอุดม
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+data = pd.read_csv("wihan_numdata.csv") # อ่านข้อมูลที่ประกอบด้วยมุมทิศ
+
+# 1) สร้างกราฟคล้าย ๆ pie chart แสดงมุมทิศ
+# 2) หาค่า standard deviation ของข้อมูลทุกข้อมูล เฉลี่ยกัน
+# 3) นำเสนอค่าที่ต้องการนำเสนอ ได้แก่ จำนวนวิหารที่หันไปในทิศต่าง ๆ (เหนือ ใต้ ออก ตก)
+
+# สร้างกราฟวงกลม
+# เฉลี่ยข้อมูล
+data["avg_angle"] = data.mean(axis=1) # 0 = column, 1 = row
+# avg_angle เก็บข้อมูลมุมทิศเฉลี่ยสำหรับทุก row
+
+# เปลี่ยนเป็น radian
+angles = np.deg2rad(data["avg_angle"])
+
+# plot ในกราฟเชิงขั้ว
+plt.figure(figsize=(8, 8))
+ax = plt.subplot(111, projection='polar') #arg111 คือขนาดของกราฟ
+
+for ang in angles:
+    ax.plot([ang, ang], [0, 1], color="blue", linewidth=1)
+
+# เริ่มที่ทิศเหนือ มุม azimuth 0 องศา
+ax.set_theta_zero_location("N") # ทิศเหนือ
+ax.set_theta_direction(-1) # ตามเข็ม แทนที่จะเป็นทวนเข็ม
+
+ax.set_yticklabels([])
+plt.grid(False)
+plt.show()
+
+# averaged standard deviation ของข้อมูล
+data["std"] = data.std(axis=1, ddof=0) # ddof=0: ใช้ N, ddof=1 ใช้ N-1
+average_SD = data["std"].mean()
+print("Averaged standard error:", round(average_SD, 6))
+
+# นับทิศ
+angles = data["avg_angle"]
+
+north = ((angles >= 315) | (angles < 45)).sum()
+east  = ((angles >= 45) & (angles < 135)).sum()
+south = ((angles >= 135) & (angles < 225)).sum()
+west  = ((angles >= 225) & (angles < 315)).sum()
+Total = north + east + south + west
+
+def percent(x):
+    return round(100 * x / Total, 2)
+
+print("จำนวนวิหารทั้งหมดที่วัดได้:", Total)
+print("ทิศเหนือ:", north, "(", percent(north), "% )")
+print("ทิศตะวันออก:", east, "(", percent(east), "% )")
+print("ทิศใต้:", south, "(", percent(south), "% )")
+print("ทิศตะวันตก:", west, "(", percent(west), "% )")
